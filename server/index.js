@@ -26,8 +26,7 @@ const getHistoryPrices = async (token, date) => {
 }
 
 const storePrices = async () => {
-    const writableStream = fs.createWriteStream("./indexxCrypto.csv");
-    //   const writableStream = fs.createWriteStream("./currentPrices.csv");
+    // const writableStream = fs.createWriteStream("./indexxCrypto.csv");
 
     const columns = [
         "Date",
@@ -40,8 +39,13 @@ const storePrices = async () => {
         , "matic-network": 0.05, "tron": 0.05, "ethereum-classic": 0.05, "litecoin": 0.05, "ftx-token": 0.05
     };
 
-    const stringifier = stringify({ header: true, columns: columns });
-    var date = "15-08-2022";
+    // const stringifier = stringify({ header: true, columns: columns });
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+    date = dd + '-' + mm + '-' + yyyy;
+
     var finalPrice = 0;
     console.log("start Writing");
     for (const [key, value] of Object.entries(percent)) {
@@ -49,12 +53,18 @@ const storePrices = async () => {
         finalPrice = finalPrice + value * x;
         console.log(key, value, x);
     }
+    let datas = ["\r\n",date,",",finalPrice ];
 
-    stringifier.write([date, finalPrice]);
-    stringifier.pipe(writableStream);
+    fs.appendFile('./currentPrices.csv', datas.join(""), (err) => {
+        if (err) console.error('Couldn\'t append the data');
+        console.log('The data was appended to file!');
+    });
+
+    // stringifier.write([date, finalPrice]);
+    // stringifier.pipe(writableStream);
+
     console.log("Finished writing data");
 }
-//  storePrices();
 
 const getCurrentPrices = async () => {
     try {
@@ -132,6 +142,14 @@ app.get("/indexxCryptoPrice", async (req, res) => {
     res.status(200).send({ "price": price });
 });
 
+app.get("/", (req, res) => {
+    res.json({ message: "API Connection OK" });
+  });
+
 app.listen(PORT, () => {
     console.log(`Server listening on ${PORT}`);
 });
+
+const POLLING_INTERVAL =  86400;
+setInterval(async () => { await storePrices() }, POLLING_INTERVAL);
+
